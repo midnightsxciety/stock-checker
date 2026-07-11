@@ -1,0 +1,140 @@
+// Stock Checker — checks configured product URLs for availability
+// and sends a push notification via ntfy.sh when something comes in stock.
+//
+// Designed to be extensible: each entry in `targets` is one product on one
+// retailer. Add more entries (even from different sites) to expand coverage.
+// Each target can optionally specify its own `parser` function if a
+// retailer's page needs different logic than the default.
+
+const NTFY_TOPIC = process.env.NTFY_TOPIC; // set as a GitHub Actions secret
+const STATE_FILE = "./state.json"; // tracks last known status per target, to avoid spamming repeat notifications
+
+import fs from "fs";
+
+// ---- Default parser for Disney Store UK (Salesforce Commerce Cloud storefront) ----
+// Looks at the rendered HTML for known phrases. If "Add to Bag" appears near
+// the buy button and none of the out-of-stock phrases are present, we treat
+// it as in stock. This is a simple heuristic — if Disney Store redesigns the
+// page, this may need updating.
+function disneyDefaultParser(html) {
+  const outOfStockPhrases = ["Coming Soon", "Notify Me", "Sold Out", "Out of Stock"];
+  const hasOutOfStockPhrase = outOfStockPhrases.some((phrase) => html.includes(phrase));
+  const hasAddToBag = html.includes("Add to Bag");
+
+  if (hasAddToBag && !hasOutOfStockPhrase) {
+    return { inStock: true, reason: "Add to Bag present, no out-of-stock phrases found" };
+  }
+  if (hasOutOfStockPhrase) {
+    return { inStock: false, reason: "Out-of-stock phrase found" };
+  }
+  // Ambiguous — couldn't confidently determine, so treat as not in stock but flag it
+  return { inStock: false, reason: "UNCLEAR - manual check recommended", ambiguous: true };
+}
+
+// ---- Add your target products here ----
+// name: friendly label for notifications
+// url: the product page to check
+// parser: function(html) => { inStock, reason, ambiguous }
+const targets = [
+  {
+    name: "Disney Princess Stationery Kit",
+    url: "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html",
+    parser: disneyDefaultParser,
+  },
+  // Add more targets below, e.g.:
+  // {
+  //   name: "Some Other Item",
+  //   url: "https://www.disneystore.co.uk/some-other-item.html",
+  //   parser: disneyDefaultParser,
+  // },
+];
+
+function loadState() {
+  try {
+    return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function saveState(state) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+async function sendNotification(title, message, url) {
+  if (!NTFY_TOPIC) {
+    console.warn("NTFY_TOPIC not set — skipping notification. Message was:", title, message);
+    return;
+  }
+  try {
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      headers: {
+        Title: title,
+        Priority: "high",
+        Tags: "tada",
+        ...(url ? { Click: url } : {}),
+      },
+      body: message,
+    });
+    console.log(`Notification sent: ${title}`);
+  } catch (err) {
+    console.error("Failed to send notification:", err.message);
+  }
+}
+
+async function checkTarget(target, state) {
+  console.log(`Checking: ${target.name}`);
+  try {
+    const res = await fetch(target.url, {
+      headers: {
+        // Pretend to be a normal browser to reduce chance of being blocked
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      },
+    });
+
+    if (!res.ok) {
+      console.warn(`  Non-OK response (${res.status}) for ${target.name}`);
+      return;
+    }
+
+    const html = await res.text();
+    const result = target.parser(html);
+    const previousInStock = state[target.url]?.inStock ?? false;
+
+    console.log(`  Result: inStock=${result.inStock} (${result.reason})`);
+
+    if (result.ambiguous) {
+      console.warn(`  AMBIGUOUS result for ${target.name} — page structure may have changed`);
+    }
+
+    // Only notify on a *transition* from out-of-stock to in-stock,
+    // so you don't get repeat notifications every run while it stays in stock.
+    if (result.inStock && !previousInStock) {
+      await sendNotification(
+        `${target.name} is IN STOCK! 🎉`,
+        `Just spotted stock at Disney Store UK. Grab it before it's gone.`,
+        target.url
+      );
+    }
+
+    state[target.url] = { inStock: result.inStock, lastChecked: new Date().toISOString() };
+  } catch (err) {
+    console.error(`  Error checking ${target.name}:`, err.message);
+  }
+}
+
+async function main() {
+  const state = loadState();
+
+  for (const target of targets) {
+    await checkTarget(target, state);
+    // Small delay between requests to be polite to the server
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+
+  saveState(state);
+}
+
+main();
