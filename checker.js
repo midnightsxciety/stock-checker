@@ -93,9 +93,9 @@ async function sendNotification(title, message, url) {
     await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
       method: "POST",
       headers: {
-        Title: title,
+        Title: title, // must be plain ASCII/Latin-1 — no emoji, HTTP headers can't carry them
         Priority: "high",
-        Tags: "tada",
+        Tags: "tada", // this renders as a 🎉 icon in the ntfy app itself, no need to put emoji in the text
         ...(url ? { Click: url } : {}),
       },
       body: message,
@@ -136,7 +136,7 @@ async function checkTarget(target, state) {
     // so you don't get repeat notifications every run while it stays in stock.
     if (result.inStock && !previousInStock) {
       await sendNotification(
-        `${target.name} is IN STOCK! 🎉`,
+        `${target.name} is IN STOCK!`,
         `Just spotted stock at Disney Store UK. Grab it before it's gone.`,
         target.url
       );
