@@ -35,20 +35,6 @@ function disneyDefaultParser(html) {
   return { inStock: false, reason: "UNCLEAR - manual check recommended", ambiguous: true };
 }
 
-// ---- Parser for Primark UK ----
-// Confirmed: Primark only shows "Add to Bag" when the item is actually
-// available for click & collect reservation — it's not always present
-// regardless of stock. So its appearance is a genuine availability signal,
-// even though it means "available to collect in-store" rather than "ships
-// to your door."
-function primarkClickAndCollectParser(html) {
-  const hasAddToBag = html.includes("Add to Bag") || html.includes("Add to bag");
-  if (hasAddToBag) {
-    return { inStock: true, reason: "Add to Bag present — available for click & collect" };
-  }
-  return { inStock: false, reason: "No Add to Bag button found — not currently available" };
-}
-
 // ---- Parser for Primark UK (store-level API) ----
 // Uses Primark's internal GraphQL "StoresAvailabilityForSearch" endpoint,
 // found via browser DevTools, which returns real per-store stock data —
@@ -114,11 +100,6 @@ const targets = [
     name: "Disney Princess Stationery Kit",
     url: "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html",
     parser: disneyDefaultParser,
-  },
-  {
-    name: "Disney Princess Coin Purse (Primark)",
-    url: "https://www.primark.com/en-gb/p/disneys-princesses-coin-purse-pink-991180401306",
-    parser: primarkClickAndCollectParser,
   },
   {
     name: "Disney Princess Coin Purse (Primark)",
