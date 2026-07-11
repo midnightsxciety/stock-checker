@@ -1,0 +1,32 @@
+name: Check Store Stock
+
+on:
+  # No schedule here — this workflow is triggered externally by cron-job.org
+  # calling the GitHub API (see README for setup), plus workflow_dispatch
+  # lets you still trigger it manually from the Actions tab for testing.
+  workflow_dispatch: {}
+
+jobs:
+  check-stock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run stock checker
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: node checker.js
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --quiet --cached || git commit -m "Update stock check state [skip ci]"
+          git push
