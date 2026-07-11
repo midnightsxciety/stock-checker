@@ -21,14 +21,32 @@ function disneyDefaultParser(html) {
   const hasOutOfStockPhrase = outOfStockPhrases.some((phrase) => html.includes(phrase));
   const hasAddToBag = html.includes("Add to Bag");
 
-  if (hasAddToBag && !hasOutOfStockPhrase) {
-    return { inStock: true, reason: "Add to Bag present, no out-of-stock phrases found" };
+  // Check "Add to Bag" FIRST and treat its presence as authoritative.
+  // Out-of-stock phrases can appear elsewhere on the page (e.g. in a
+  // "you may also like" carousel showing a different, sold-out product),
+  // so their presence alone shouldn't override a genuine Add to Bag button.
+  if (hasAddToBag) {
+    return { inStock: true, reason: "Add to Bag present" };
   }
   if (hasOutOfStockPhrase) {
-    return { inStock: false, reason: "Out-of-stock phrase found" };
+    return { inStock: false, reason: "Out-of-stock phrase found, no Add to Bag" };
   }
   // Ambiguous — couldn't confidently determine, so treat as not in stock but flag it
   return { inStock: false, reason: "UNCLEAR - manual check recommended", ambiguous: true };
+}
+
+// ---- Parser for Primark UK ----
+// Confirmed: Primark only shows "Add to Bag" when the item is actually
+// available for click & collect reservation — it's not always present
+// regardless of stock. So its appearance is a genuine availability signal,
+// even though it means "available to collect in-store" rather than "ships
+// to your door."
+function primarkClickAndCollectParser(html) {
+  const hasAddToBag = html.includes("Add to Bag") || html.includes("Add to bag");
+  if (hasAddToBag) {
+    return { inStock: true, reason: "Add to Bag present — available for click & collect" };
+  }
+  return { inStock: false, reason: "No Add to Bag button found — not currently available" };
 }
 
 // ---- Add your target products here ----
@@ -40,6 +58,11 @@ const targets = [
     name: "Disney Princess Stationery Kit",
     url: "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html",
     parser: disneyDefaultParser,
+  },
+  {
+    name: "Disney Princess Coin Purse (Primark)",
+    url: "https://www.primark.com/en-gb/p/disneys-princesses-coin-purse-pink-991180401306",
+    parser: primarkClickAndCollectParser,
   },
   // Add more targets below, e.g.:
   // {
