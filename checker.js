@@ -49,6 +49,62 @@ function primarkClickAndCollectParser(html) {
   return { inStock: false, reason: "No Add to Bag button found — not currently available" };
 }
 
+// ---- Parser for Primark UK (store-level API) ----
+// Uses Primark's internal GraphQL "StoresAvailabilityForSearch" endpoint,
+// found via browser DevTools, which returns real per-store stock data —
+// much more reliable than text-matching the page HTML (which is JS-rendered
+// and doesn't show true stock state in a plain fetch).
+//
+// IMPORTANT CAVEAT: this endpoint was only confirmed working when called
+// with real browser session cookies attached (Akamai bot-protection cookies:
+// ak_bmsc, bm_sz, _abck). It is NOT yet confirmed to work from a script with
+// no browser session. If this starts failing/blocking in GitHub Actions,
+// that's the likely cause, and this approach may not be sustainable long-term.
+function buildPrimarkStoreCheckUrl(sku, latitude, longitude, radius = 50) {
+  const variables = encodeURIComponent(JSON.stringify({ sku, locale: "en-gb", latitude, longitude, radius }));
+  const extensions = encodeURIComponent(
+    JSON.stringify({
+      persistedQuery: {
+        version: 1,
+        sha256Hash: "5da86d9ab00d044a08a86b2994962fb30c4b5b44328350a2ee46d21402701cc6",
+      },
+    })
+  );
+  return `https://api001-arh.primark.com/bff-cae-blue?operationName=StoresAvailabilityForSearch&variables=${variables}&extensions=${extensions}`;
+}
+
+function primarkStoreAvailabilityParser(responseText) {
+  let json;
+  try {
+    json = JSON.parse(responseText);
+  } catch {
+    return { inStock: false, reason: "UNCLEAR - response wasn't valid JSON (possibly blocked)", ambiguous: true };
+  }
+
+  if (json.errors) {
+    return { inStock: false, reason: `API returned an error: ${JSON.stringify(json.errors)}`, ambiguous: true };
+  }
+
+  const stores = json?.data?.geosearchWithInventory?.stores || [];
+  if (stores.length === 0) {
+    return { inStock: false, reason: "UNCLEAR - no stores returned, response shape may have changed", ambiguous: true };
+  }
+
+  // Known non-stock values seen so far: OUT_OF_STOCK, NOT_RANGED (store never carries this item).
+  // Anything else (e.g. IN_STOCK, LOW_STOCK) is treated as available.
+  const knownOutOfStockValues = ["OUT_OF_STOCK", "NOT_RANGED"];
+  const inStockStore = stores.find((s) => !knownOutOfStockValues.includes(s.inventoryBySku?.available));
+
+  if (inStockStore) {
+    return {
+      inStock: true,
+      reason: `Available at ${inStockStore.geomodifier} (${inStockStore.address.postalCode}) — status: ${inStockStore.inventoryBySku.available}`,
+    };
+  }
+
+  return { inStock: false, reason: `Checked ${stores.length} nearby stores, all OUT_OF_STOCK or NOT_RANGED` };
+}
+
 // ---- Add your target products here ----
 // name: friendly label for notifications
 // url: the product page to check
@@ -63,6 +119,17 @@ const targets = [
     name: "Disney Princess Coin Purse (Primark)",
     url: "https://www.primark.com/en-gb/p/disneys-princesses-coin-purse-pink-991180401306",
     parser: primarkClickAndCollectParser,
+  },
+  {
+    name: "Disney Princess Coin Purse (Primark)",
+    url: buildPrimarkStoreCheckUrl("212097357", 51.745330416241096, -1.2263556685776311, 100),
+    parser: primarkStoreAvailabilityParser,
+    extraHeaders: {
+      accept: "*/*",
+      "content-type": "application/json",
+      origin: "https://www.primark.com",
+      referer: "https://www.primark.com/",
+    },
   },
   // Add more targets below, e.g.:
   // {
@@ -114,6 +181,7 @@ async function checkTarget(target, state) {
         // Pretend to be a normal browser to reduce chance of being blocked
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        ...(target.extraHeaders || {}), // allows per-target overrides, e.g. origin/referer for API endpoints
       },
     });
 
