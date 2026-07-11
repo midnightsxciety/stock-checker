@@ -1,33 +1,8 @@
-# Disney Store UK Stock Checker
+# Stock Checker
 
 Checks configured Disney Store UK product pages every 5 minutes via GitHub
 Actions, and sends a push notification to your iPhone via ntfy.sh when an
 item comes into stock.
-
-## Setup (one-time)
-
-### 1. Get the ntfy app on your iPhone
-- Install **ntfy** from the App Store (free, no account needed)
-- Open the app → tap "+" → subscribe to a topic name of your choosing
-  - Pick something private/hard-to-guess, e.g. `lewis-disney-stock-a8f3k`
-  - Anyone who knows this exact topic name could see your notifications, since
-    ntfy.sh topics are not access-controlled by default — that's why a random
-    suffix matters
-
-### 2. Create a GitHub repo
-- Push this folder to a new **public or private** GitHub repo
-  (private is fine — Actions still works, just uses your free minutes quota,
-  which is generous enough for this)
-
-### 3. Add your ntfy topic as a repo secret
-- In your GitHub repo: Settings → Secrets and variables → Actions → New repository secret
-- Name: `NTFY_TOPIC`
-- Value: the topic name you picked in step 1 (e.g. `lewis-disney-stock-a8f3k`)
-
-### 4. Enable Actions
-- Go to the "Actions" tab in your repo → enable workflows if prompted
-- The workflow will now run automatically every 5 minutes
-- To test immediately: Actions tab → "Check Disney Store Stock" → "Run workflow"
 
 ## Adding more products or retailers
 
