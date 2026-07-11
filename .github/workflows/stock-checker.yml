@@ -1,4 +1,4 @@
-name: Check Store Stock
+name: Check Disney Store Stock
 
 on:
   # No schedule here — this workflow is triggered externally by cron-job.org
@@ -28,5 +28,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add state.json
-          git diff --quiet --cached || git commit -m "Update stock check state [skip ci]"
-          git push
+          # Only commit if the actual stock status changed, not just timestamps —
+          # avoids a new commit on every single run when nothing meaningful changed.
+          if git diff --cached --quiet -- state.json; then
+            echo "No changes to commit"
+          elif git diff --cached -- state.json | grep -q '^[+-].*"inStock"'; then
+            git commit -m "Update stock check state [skip ci]"
+            git push
+          else
+            echo "Only timestamps changed, skipping commit"
+            git restore --staged state.json
+            git checkout -- state.json
+          fi
