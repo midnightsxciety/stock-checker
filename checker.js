@@ -137,7 +137,7 @@ async function checkTarget(target, state) {
     if (result.inStock && !previousInStock) {
       await sendNotification(
         `${target.name} is IN STOCK!`,
-        `Just spotted stock at Disney Store UK. Grab it before it's gone.`,
+        `Just spotted availability — grab it before it's gone.`,
         target.url
       );
     }
