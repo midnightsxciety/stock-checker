@@ -1,10 +1,10 @@
 {
   "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html": {
     "inStock": true,
-    "lastChecked": "2026-07-12T02:12:14.213Z"
+    "lastChecked": "2026-07-12T02:18:14.140Z"
   },
   "https://api001-arh.primark.com/bff-cae-blue?operationName=StoresAvailabilityForSearch&variables=%7B%22sku%22%3A%22212097357%22%2C%22locale%22%3A%22en-gb%22%2C%22latitude%22%3A51.745330416241096%2C%22longitude%22%3A-1.2263556685776311%2C%22radius%22%3A100%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%225da86d9ab00d044a08a86b2994962fb30c4b5b44328350a2ee46d21402701cc6%22%7D%7D": {
-    "inStock": true,
-    "lastChecked": "2026-07-12T02:12:16.135Z"
+    "inStock": false,
+    "lastChecked": "2026-07-12T02:18:15.711Z"
   }
 }
