@@ -104,6 +104,7 @@ const targets = [
   {
     name: "Disney Princess Coin Purse (Primark)",
     url: buildPrimarkStoreCheckUrl("212097357", 51.745330416241096, -1.2263556685776311, 100),
+    productPageUrl: "https://www.primark.com/en-gb/p/disneys-princesses-coin-purse-pink-991180401306",
     parser: primarkStoreAvailabilityParser,
     extraHeaders: {
       accept: "*/*",
@@ -187,7 +188,7 @@ async function checkTarget(target, state) {
       await sendNotification(
         `${target.name} is IN STOCK!`,
         `Just spotted availability — grab it before it's gone.`,
-        target.url
+        target.productPageUrl || target.url // link to the human-readable page if provided, otherwise fall back to the check URL
       );
     }
 
