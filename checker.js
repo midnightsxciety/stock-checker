@@ -91,6 +91,32 @@ function primarkStoreAvailabilityParser(responseText) {
   return { inStock: false, reason: `Checked ${stores.length} nearby stores, all OUT_OF_STOCK or NOT_RANGED` };
 }
 
+// ---- Parser for Get Ready Comics (WooCommerce store) ----
+// WooCommerce renders "Out of stock" and "Add to basket" text throughout the
+// page for "Related products" too, so those alone aren't reliable signals.
+// The "Want to be notified when this product is in stock?" notify-me block
+// only appears for the specific product being viewed, so it's a much safer
+// signal for whether THIS item is out of stock.
+function wooCommerceNotifyMeParser(html) {
+  const hasNotifyMeBlock = html.includes("Want to be notified when this product is in stock?");
+  if (hasNotifyMeBlock) {
+    return { inStock: false, reason: "Notify-me block present — still out of stock" };
+  }
+  return { inStock: true, reason: "Notify-me block absent — likely back in stock" };
+}
+
+// ---- Parser for Home Bargains ----
+// "OUT OF STOCK" (all-caps) appears directly under the product title and,
+// unlike other sites, isn't repeated for related/recommended products (those
+// just show price + "BUY"), making this a clean, reliable single-purpose signal.
+function homeBargainsParser(html) {
+  const isOutOfStock = html.includes("OUT OF STOCK");
+  if (isOutOfStock) {
+    return { inStock: false, reason: "OUT OF STOCK label present" };
+  }
+  return { inStock: true, reason: "OUT OF STOCK label absent — likely in stock" };
+}
+
 // ---- Add your target products here ----
 // name: friendly label for notifications
 // url: the product page to check
@@ -112,6 +138,21 @@ const targets = [
       origin: "https://www.primark.com",
       referer: "https://www.primark.com/",
     },
+  },
+  {
+    name: "Rapunzel Loungefly Mini Backpack (Get Ready Comics)",
+    url: "https://getreadycomics.com/shop/rapunzel-sketched-tangled-disney-loungefly-mini-backpack-box-lunch-exclusive/",
+    parser: wooCommerceNotifyMeParser,
+  },
+  {
+    name: "Pascal Loungefly Wallet (Get Ready Comics)",
+    url: "https://getreadycomics.com/shop/pascal-sketched-tangled-disney-loungefly-wallet-box-lunch-exclusive/",
+    parser: wooCommerceNotifyMeParser,
+  },
+  {
+    name: "Disney Princess Fleece Throw (Home Bargains)",
+    url: "https://home.bargains/product/b6b068c2-6217-4897-9fef-45f12196a65c/disney-princess-fleece-throw",
+    parser: homeBargainsParser,
   },
   // Add more targets below, e.g.:
   // {
