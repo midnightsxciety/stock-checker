@@ -1,3 +1,7 @@
+78% of storage used … If you run out, you can't create, edit, and upload files. Share 100 GB of storage with your family members for £0.39 for 3 months £1.59.
+checker.js
+1
+100%
 // Stock Checker — checks configured product URLs for availability
 // and sends a push notification via ntfy.sh when something comes in stock.
 //
@@ -35,62 +39,6 @@ function disneyDefaultParser(html) {
   return { inStock: false, reason: "UNCLEAR - manual check recommended", ambiguous: true };
 }
 
-// ---- Parser for Primark UK (store-level API) ----
-// Uses Primark's internal GraphQL "StoresAvailabilityForSearch" endpoint,
-// found via browser DevTools, which returns real per-store stock data —
-// much more reliable than text-matching the page HTML (which is JS-rendered
-// and doesn't show true stock state in a plain fetch).
-//
-// IMPORTANT CAVEAT: this endpoint was only confirmed working when called
-// with real browser session cookies attached (Akamai bot-protection cookies:
-// ak_bmsc, bm_sz, _abck). It is NOT yet confirmed to work from a script with
-// no browser session. If this starts failing/blocking in GitHub Actions,
-// that's the likely cause, and this approach may not be sustainable long-term.
-function buildPrimarkStoreCheckUrl(sku, latitude, longitude, radius = 50) {
-  const variables = encodeURIComponent(JSON.stringify({ sku, locale: "en-gb", latitude, longitude, radius }));
-  const extensions = encodeURIComponent(
-    JSON.stringify({
-      persistedQuery: {
-        version: 1,
-        sha256Hash: "5da86d9ab00d044a08a86b2994962fb30c4b5b44328350a2ee46d21402701cc6",
-      },
-    })
-  );
-  return `https://api001-arh.primark.com/bff-cae-blue?operationName=StoresAvailabilityForSearch&variables=${variables}&extensions=${extensions}`;
-}
-
-function primarkStoreAvailabilityParser(responseText) {
-  let json;
-  try {
-    json = JSON.parse(responseText);
-  } catch {
-    return { inStock: false, reason: "UNCLEAR - response wasn't valid JSON (possibly blocked)", ambiguous: true };
-  }
-
-  if (json.errors) {
-    return { inStock: false, reason: `API returned an error: ${JSON.stringify(json.errors)}`, ambiguous: true };
-  }
-
-  const stores = json?.data?.geosearchWithInventory?.stores || [];
-  if (stores.length === 0) {
-    return { inStock: false, reason: "UNCLEAR - no stores returned, response shape may have changed", ambiguous: true };
-  }
-
-  // Known non-stock values seen so far: OUT_OF_STOCK, NOT_RANGED (store never carries this item).
-  // Anything else (e.g. IN_STOCK, LOW_STOCK) is treated as available.
-  const knownOutOfStockValues = ["OUT_OF_STOCK", "NOT_RANGED"];
-  const inStockStore = stores.find((s) => !knownOutOfStockValues.includes(s.inventoryBySku?.available));
-
-  if (inStockStore) {
-    return {
-      inStock: true,
-      reason: `Available at ${inStockStore.geomodifier} (${inStockStore.address.postalCode}) — status: ${inStockStore.inventoryBySku.available}`,
-    };
-  }
-
-  return { inStock: false, reason: `Checked ${stores.length} nearby stores, all OUT_OF_STOCK or NOT_RANGED` };
-}
-
 // ---- Parser for Get Ready Comics (WooCommerce store) ----
 // WooCommerce renders "Out of stock" and "Add to basket" text throughout the
 // page for "Related products" too, so those alone aren't reliable signals.
@@ -126,18 +74,6 @@ const targets = [
     name: "Disney Princess Stationery Kit",
     url: "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html",
     parser: disneyDefaultParser,
-  },
-  {
-    name: "Disney Princess Coin Purse (Primark)",
-    url: buildPrimarkStoreCheckUrl("212097357", 51.745330416241096, -1.2263556685776311, 100),
-    productPageUrl: "https://www.primark.com/en-gb/p/disneys-princesses-coin-purse-pink-991180401306",
-    parser: primarkStoreAvailabilityParser,
-    extraHeaders: {
-      accept: "*/*",
-      "content-type": "application/json",
-      origin: "https://www.primark.com",
-      referer: "https://www.primark.com/",
-    },
   },
   {
     name: "Rapunzel Loungefly Mini Backpack (Get Ready Comics)",
