@@ -1,22 +1,22 @@
 {
   "https://www.disneystore.co.uk/disney-princess-stationery-kit-435391289152.html": {
     "inStock": false,
-    "lastChecked": "2026-08-24T14:52:17.123Z"
+    "lastChecked": "2026-08-24T14:54:17.166Z"
   },
   "https://api001-arh.primark.com/bff-cae-blue?operationName=StoresAvailabilityForSearch&variables=%7B%22sku%22%3A%22212097357%22%2C%22locale%22%3A%22en-gb%22%2C%22latitude%22%3A51.745330416241096%2C%22longitude%22%3A-1.2263556685776311%2C%22radius%22%3A100%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%225da86d9ab00d044a08a86b2994962fb30c4b5b44328350a2ee46d21402701cc6%22%7D%7D": {
-    "inStock": false,
-    "lastChecked": "2026-08-24T14:52:38.855Z"
+    "inStock": true,
+    "lastChecked": "2026-08-24T14:54:19.793Z"
   },
   "https://getreadycomics.com/shop/rapunzel-sketched-tangled-disney-loungefly-mini-backpack-box-lunch-exclusive/": {
     "inStock": true,
-    "lastChecked": "2026-08-24T14:52:40.489Z"
+    "lastChecked": "2026-08-24T14:54:21.410Z"
   },
   "https://getreadycomics.com/shop/pascal-sketched-tangled-disney-loungefly-wallet-box-lunch-exclusive/": {
     "inStock": false,
-    "lastChecked": "2026-08-24T14:52:42.007Z"
+    "lastChecked": "2026-08-24T14:54:22.923Z"
   },
   "https://home.bargains/product/b6b068c2-6217-4897-9fef-45f12196a65c/disney-princess-fleece-throw": {
     "inStock": false,
-    "lastChecked": "2026-08-24T14:52:44.194Z"
+    "lastChecked": "2026-08-24T14:54:25.243Z"
   }
 }
