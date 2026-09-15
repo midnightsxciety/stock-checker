@@ -1,7 +1,3 @@
-78% of storage used … If you run out, you can't create, edit, and upload files. Share 100 GB of storage with your family members for £0.39 for 3 months £1.59.
-checker.js
-1
-100%
 // Stock Checker — checks configured product URLs for availability
 // and sends a push notification via ntfy.sh when something comes in stock.
 //
@@ -88,6 +84,11 @@ const targets = [
   {
     name: "Disney Princess Fleece Throw (Home Bargains)",
     url: "https://home.bargains/product/b6b068c2-6217-4897-9fef-45f12196a65c/disney-princess-fleece-throw",
+    parser: homeBargainsParser,
+  },
+  {
+    name: "Disney Princess Storage Cube (Home Bargains)",
+    url: "https://home.bargains/product/ec53362a-7b7e-4f56-9fe4-063adc8e1555/disney-princess-storage-cube",
     parser: homeBargainsParser,
   },
   // Add more targets below, e.g.:
